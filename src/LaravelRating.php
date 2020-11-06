@@ -9,10 +9,12 @@ class LaravelRating
     public function rate($user, $rateable, $value)
     {
         if ($this->isRated($user, $rateable)) {
-            return $user->ratings()
-                        ->where('rateable_id', $rateable->id)
-                        ->where('rateable_type', $this->getRateableByClass($rateable))
-                        ->update(['value' => $value]);
+            $rated =  $user->ratings()
+                            ->where('rateable_id', $rateable->id)
+                            ->where('rateable_type', $this->getRateableByClass($rateable))->first();
+            $rated->update(['value' => $value]);
+
+            return $rated;
         }
 
         return $user->ratings()->create([
@@ -46,7 +48,7 @@ class LaravelRating
     public function resolveRatedItems($items)
     {
         $collection = collect();
-        
+
         foreach ($items as $item) {
             $rateableClass = $this->getRateableByKey($item->rateable_type);
             $collection->push((new $rateableClass)->find($item->rateable_id));
