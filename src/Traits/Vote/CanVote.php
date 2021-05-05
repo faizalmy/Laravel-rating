@@ -2,47 +2,53 @@
 
 namespace Nagy\LaravelRating\Traits\Vote;
 
-use LaravelRating;
+use Nagy\LaravelRating\LaravelRating;
+use Nagy\LaravelRating\LaravelRatingFacade;
 use Nagy\LaravelRating\Models\Rating;
 
 trait CanVote
 {
     public function votes()
     {
-        return $this->morphMany(Rating::class, 'model');
+        return $this->morphMany(Rating::class, 'model')->where('type', LaravelRating::TYPE_VOTE);
     }
 
     public function upVote($model)
     {
-        return LaravelRating::rate($this, $model, 1);
+        return LaravelRatingFacade::rate($this, $model, 1, LaravelRating::TYPE_VOTE);
     }
 
     public function downVote($model)
     {
-        return LaravelRating::rate($this, $model, 0);
+        return LaravelRatingFacade::rate($this, $model, 0, LaravelRating::TYPE_VOTE);
     }
 
     public function isVoted($model)
     {
-        return LaravelRating::isRated($this, $model);
+        return LaravelRatingFacade::isRated($this, $model, LaravelRating::TYPE_VOTE);
+    }
+
+    public function getVotingValue($model)
+    {
+        return LaravelRatingFacade::getRatingValue($this, $model, LaravelRating::TYPE_VOTE);
     }
 
     public function upVoted()
     {
         $upVoted = $this->votes()->where('value', 1)->get();
 
-        return LaravelRating::resolveRatedItems($upVoted);
+        return LaravelRatingFacade::resolveRatedItems($upVoted);
     }
 
     public function downVoted()
     {
         $downVoted = $this->votes()->where('value', 0)->get();
 
-        return LaravelRating::resolveRatedItems($downVoted);
+        return LaravelRatingFacade::resolveRatedItems($downVoted);
     }
 
     public function voted()
     {
-        return LaravelRating::resolveRatedItems($this->votes);
+        return LaravelRatingFacade::resolveRatedItems($this->votes);
     }
 }

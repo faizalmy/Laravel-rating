@@ -6,43 +6,72 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 
 class LaravelRating
 {
-    public function rate($user, $rateable, $value)
-    {
-        if ($this->isRated($user, $rateable)) {
-            $rated =  $user->ratings()
-                            ->where('rateable_id', $rateable->id)
-                            ->where('rateable_type', $this->getRateableByClass($rateable))->first();
-            $rated->update(['value' => $value]);
+    const TYPE_LIKE = 'like';
+    const TYPE_RATE = 'rate';
+    const TYPE_VOTE = 'vote';
 
-            return $rated;
+    public function rate($user, $rateable, $value, $type)
+    {
+        if ($this->isRated($user, $rateable, $type)) {
+            return $user->{$this->resolveTypeRelation($type)}()
+                        ->where('rateable_id', $rateable->id)
+                        ->where('type', $type)
+                        ->where('rateable_type', $this->getRateableByClass($rateable))
+                        ->update(['value' => $value]);
         }
 
-        return $user->ratings()->create([
-            'rateable_id'   => $rateable->id,
+        return $user->{$this->resolveTypeRelation($type)}()->create([
+            'rateable_id' => $rateable->id,
             'rateable_type' => $this->getRateableByClass($rateable),
-            'value'         => $value
+            'value' => $value,
+            'type' => $type,
         ]);
     }
 
-    public function isRated($user, $rateable)
+    public function unRate($user, $rateable, $type)
     {
-        $rating = $user->ratings()
+        if ($this->isRated($user, $rateable, $type)) {
+            return $user->{$this->resolveTypeRelation($type)}()
+                        ->where('rateable_id', $rateable->id)
+                        ->where('type', $type)
+                        ->where('rateable_type', $this->getRateableByClass($rateable))
+                        ->delete();
+        }
+
+        return false;
+    }
+
+    public function isRated($user, $rateable, $type)
+    {
+        $rating = $user->{$this->resolveTypeRelation($type)}()
                         ->where('rateable_id', $rateable->id)
                         ->where('rateable_type', $this->getRateableByClass($rateable))
+                        ->where('type', $type)
                         ->first();
 
         return $rating != null;
-
     }
 
-    public function getRatingValue($user, $rateable)
+    public function getRatingValue($user, $rateable, $type)
     {
-        $rating = $user->ratings()
+        $rating = $user->{$this->resolveTypeRelation($type)}()
                         ->where('rateable_id', $rateable->id)
                         ->where('rateable_type', $this->getRateableByClass($rateable))
+                        ->where('type', $type)
                         ->first();
 
         return $rating != null ? $rating->value : null;
+    }
+
+    private function resolveTypeRelation($type)
+    {
+        $lookup = [
+              static::TYPE_LIKE => 'likes',
+              static::TYPE_RATE => 'ratings',
+              static::TYPE_VOTE => 'votes',
+        ];
+
+        return $lookup[$type];
     }
 
     public function resolveRatedItems($items)
