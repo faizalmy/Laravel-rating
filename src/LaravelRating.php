@@ -13,11 +13,13 @@ class LaravelRating
     public function rate($user, $rateable, $value, $type)
     {
         if ($this->isRated($user, $rateable, $type)) {
-            return $user->{$this->resolveTypeRelation($type)}()
+            $rated =  $user->{$this->resolveTypeRelation($type)}()
                         ->where('rateable_id', $rateable->id)
                         ->where('type', $type)
-                        ->where('rateable_type', $this->getRateableByClass($rateable))
-                        ->update(['value' => $value]);
+                        ->where('rateable_type', $this->getRateableByClass($rateable))->first();
+            $rated->update(['value' => $value]);
+
+            return $rated;
         }
 
         return $user->{$this->resolveTypeRelation($type)}()->create([
